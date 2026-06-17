@@ -7,6 +7,14 @@
 
 html {
   height: 100%;
+
+  // `mat.theme()` emits its M3 system variables using the CSS `light-dark()`
+  // function, so the active scheme is chosen by the `color-scheme` property.
+  // The default here (`light dark`) defers to the user's OS setting; the Theme
+  // service overrides `color-scheme` on this element at runtime to force light
+  // or dark. `color-scheme` is inherited, so the choice flows to the whole app.
+  color-scheme: light dark;
+
   @include mat.theme(
     (
       color: (
@@ -20,11 +28,6 @@ html {
 }
 
 body {
-  // Defer to the user's system settings: `light dark` lets the browser pick the
-  // active scheme, and Angular Material's M3 system variables (set by
-  // `mat.theme()` above) resolve to their light/dark values accordingly.
-  color-scheme: light dark;
-
   // Set a default background, font and text colors for the application using
   // Angular Material's system-level CSS variables. Learn more about these
   // variables at https://material.angular.dev/guide/system-variables
@@ -36,4 +39,10 @@ body {
   margin: 0;
   height: 100%;
 }
+// Highlight the selected theme in the switcher menu. The menu renders in a
+// global CDK overlay, so this rule lives here rather than in the component.
+.mat-mdc-menu-item.active {
+  font-weight: 600;
+}
+
 /* You can add global styles to this file, and also import other style files */
