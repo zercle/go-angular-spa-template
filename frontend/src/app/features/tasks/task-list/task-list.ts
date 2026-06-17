@@ -3,7 +3,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
+import { Task } from '../../../core/task';
 import { TaskStore } from '../../../core/task-store';
 import { TaskForm, TaskFormValue } from '../task-form/task-form';
 
@@ -17,6 +19,7 @@ import { TaskForm, TaskFormValue } from '../task-form/task-form';
 })
 export class TaskList {
   readonly store = inject(TaskStore);
+  private readonly snackBar = inject(MatSnackBar);
 
   /** Id of the task currently being edited inline, if any. */
   readonly editingId = signal<string | null>(null);
@@ -25,11 +28,40 @@ export class TaskList {
     void this.store.load();
   }
 
-  onCreate(value: TaskFormValue): void {
-    void this.store.add({ title: value.title });
+  async onCreate(value: TaskFormValue): Promise<void> {
+    const ok = await this.store.add({ title: value.title });
+    if (!ok) {
+      this.notifyFailure();
+    }
   }
 
-  onUpdate(id: string, value: TaskFormValue): void {
-    void this.store.update(id, value).then(() => this.editingId.set(null));
+  async onUpdate(id: string, value: TaskFormValue): Promise<void> {
+    const ok = await this.store.update(id, value);
+    if (ok) {
+      this.editingId.set(null);
+    } else {
+      this.notifyFailure();
+    }
+  }
+
+  async onToggle(task: Task): Promise<void> {
+    const ok = await this.store.toggle(task);
+    if (!ok) {
+      this.notifyFailure();
+    }
+  }
+
+  async onRemove(id: string): Promise<void> {
+    const ok = await this.store.remove(id);
+    if (!ok) {
+      this.notifyFailure();
+    }
+  }
+
+  /** Surfaces a mutation failure as a transient toast for screen + sighted users. */
+  private notifyFailure(): void {
+    this.snackBar.open(this.store.error() ?? 'Something went wrong.', 'Dismiss', {
+      duration: 5000,
+    });
   }
 }

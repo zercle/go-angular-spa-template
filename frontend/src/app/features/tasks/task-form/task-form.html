@@ -1,4 +1,4 @@
-<form [formGroup]="form" (ngSubmit)="submit()" class="task-form">
+<form [formGroup]="form" (ngSubmit)="submit()" class="task-form" [attr.aria-busy]="submitting()">
   <mat-form-field appearance="outline" class="title-field">
     <mat-label>Task title</mat-label>
     <input
@@ -24,7 +24,9 @@
   }
 
   <div class="actions">
-    <button matButton="filled" type="submit">{{ isEdit() ? 'Update' : 'Add task' }}</button>
+    <button matButton="filled" type="submit" [disabled]="submitting()">
+      {{ isEdit() ? 'Update' : 'Add task' }}
+    </button>
     @if (isEdit()) {
       <button matButton type="button" (click)="cancelled.emit()">Cancel</button>
     }

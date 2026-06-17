@@ -16,14 +16,24 @@ export class TaskStore {
   private readonly _tasks = signal<Task[]>([]);
   private readonly _loading = signal(false);
   private readonly _error = signal<string | null>(null);
+  private readonly _submitting = signal(false);
+  private readonly _pendingIds = signal<ReadonlySet<string>>(new Set());
 
   /** Read-only views exposed to components. */
   readonly tasks = this._tasks.asReadonly();
   readonly loading = this._loading.asReadonly();
   readonly error = this._error.asReadonly();
 
+  /** True while an add/update is in flight (guards the form submit button). */
+  readonly submitting = this._submitting.asReadonly();
+
   /** Derived count of not-yet-done tasks. */
   readonly remaining = computed(() => this._tasks().filter((t) => !t.done).length);
+
+  /** Whether a per-task mutation (toggle/delete) is in flight for `id`. */
+  pending(id: string): boolean {
+    return this._pendingIds().has(id);
+  }
 
   /** Fetches all tasks into state (list endpoint returns { tasks: [...] }). */
   async load(): Promise<void> {
@@ -41,26 +51,89 @@ export class TaskStore {
     }
   }
 
-  /** Creates a task and prepends it to state. */
-  async add(input: CreateTask): Promise<void> {
-    const created = await firstValueFrom(this.http.post<Task>(this.baseUrl, input));
-    this._tasks.update((list) => [created, ...list]);
+  /** Creates a task and prepends it to state. Returns true on success. */
+  async add(input: CreateTask): Promise<boolean> {
+    if (this._submitting()) return false;
+    this._submitting.set(true);
+    try {
+      const created = await firstValueFrom(this.http.post<Task>(this.baseUrl, input));
+      this._tasks.update((list) => [created, ...list]);
+      this._error.set(null);
+      return true;
+    } catch {
+      this._error.set('Failed to add task.');
+      return false;
+    } finally {
+      this._submitting.set(false);
+    }
   }
 
-  /** Updates a task and replaces it in state. */
-  async update(id: string, input: UpdateTask): Promise<void> {
-    const updated = await firstValueFrom(this.http.put<Task>(`${this.baseUrl}/${id}`, input));
-    this._tasks.update((list) => list.map((t) => (t.id === id ? updated : t)));
+  /** Updates a task and replaces it in state. Returns true on success. */
+  async update(id: string, input: UpdateTask): Promise<boolean> {
+    if (this._submitting()) return false;
+    this._submitting.set(true);
+    try {
+      const updated = await firstValueFrom(this.http.put<Task>(`${this.baseUrl}/${id}`, input));
+      this._tasks.update((list) => list.map((t) => (t.id === id ? updated : t)));
+      this._error.set(null);
+      return true;
+    } catch {
+      this._error.set('Failed to update task.');
+      return false;
+    } finally {
+      this._submitting.set(false);
+    }
   }
 
-  /** Toggles the done flag of a task. */
-  async toggle(task: Task): Promise<void> {
-    await this.update(task.id, { title: task.title, done: !task.done });
+  /** Toggles the done flag of a task. Returns true on success. */
+  async toggle(task: Task): Promise<boolean> {
+    if (this.pending(task.id)) return false;
+    this.markPending(task.id, true);
+    try {
+      const updated = await firstValueFrom(
+        this.http.put<Task>(`${this.baseUrl}/${task.id}`, {
+          title: task.title,
+          done: !task.done,
+        }),
+      );
+      this._tasks.update((list) => list.map((t) => (t.id === task.id ? updated : t)));
+      this._error.set(null);
+      return true;
+    } catch {
+      this._error.set('Failed to update task.');
+      return false;
+    } finally {
+      this.markPending(task.id, false);
+    }
   }
 
-  /** Deletes a task and removes it from state. */
-  async remove(id: string): Promise<void> {
-    await firstValueFrom(this.http.delete<void>(`${this.baseUrl}/${id}`));
-    this._tasks.update((list) => list.filter((t) => t.id !== id));
+  /** Deletes a task and removes it from state. Returns true on success. */
+  async remove(id: string): Promise<boolean> {
+    if (this.pending(id)) return false;
+    this.markPending(id, true);
+    try {
+      await firstValueFrom(this.http.delete<void>(`${this.baseUrl}/${id}`));
+      this._tasks.update((list) => list.filter((t) => t.id !== id));
+      this._error.set(null);
+      return true;
+    } catch {
+      this._error.set('Failed to delete task.');
+      return false;
+    } finally {
+      this.markPending(id, false);
+    }
+  }
+
+  /** Adds or removes `id` from the set of tasks with an in-flight mutation. */
+  private markPending(id: string, pending: boolean): void {
+    this._pendingIds.update((ids) => {
+      const next = new Set(ids);
+      if (pending) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
   }
 }

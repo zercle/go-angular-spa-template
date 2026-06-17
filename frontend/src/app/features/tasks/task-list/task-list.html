@@ -1,4 +1,4 @@
-<section class="tasks">
+<section class="tasks" [attr.aria-busy]="store.loading()">
   <header class="tasks__header">
     <h1>Tasks</h1>
     <p class="summary" aria-live="polite">
@@ -18,7 +18,7 @@
 
   <ul class="task-list" role="list">
     @for (task of store.tasks(); track task.id) {
-      <li class="task-row">
+      <li class="task-row" [attr.aria-busy]="store.pending(task.id)">
         @if (editingId() === task.id) {
           <app-task-form
             [task]="task"
@@ -28,16 +28,29 @@
         } @else {
           <mat-checkbox
             [checked]="task.done"
-            (change)="store.toggle(task)"
+            [disabled]="store.pending(task.id)"
+            (change)="onToggle(task)"
             [aria-label]="'Mark ' + task.title + ' as done'"
           >
             <span class="title" [class.title--done]="task.done">{{ task.title }}</span>
           </mat-checkbox>
           <span class="spacer"></span>
-          <button matIconButton type="button" (click)="editingId.set(task.id)" aria-label="Edit task">
+          <button
+            matIconButton
+            type="button"
+            [disabled]="store.pending(task.id)"
+            (click)="editingId.set(task.id)"
+            aria-label="Edit task"
+          >
             <mat-icon>edit</mat-icon>
           </button>
-          <button matIconButton type="button" (click)="store.remove(task.id)" aria-label="Delete task">
+          <button
+            matIconButton
+            type="button"
+            [disabled]="store.pending(task.id)"
+            (click)="onRemove(task.id)"
+            aria-label="Delete task"
+          >
             <mat-icon>delete</mat-icon>
           </button>
         }

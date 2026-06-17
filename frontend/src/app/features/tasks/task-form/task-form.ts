@@ -6,6 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 
 import { Task } from '../../../core/task';
+import { TaskStore } from '../../../core/task-store';
 
 /** Emitted when the user saves the form. */
 export interface TaskFormValue {
@@ -36,6 +37,9 @@ export class TaskForm {
   readonly cancelled = output<void>();
 
   readonly isEdit = computed(() => this.task() !== null);
+
+  /** True while an add/update is in flight; disables submit to avoid double-submits. */
+  readonly submitting = inject(TaskStore).submitting;
 
   private readonly formDir = viewChild(FormGroupDirective);
 
