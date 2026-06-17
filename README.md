@@ -75,6 +75,15 @@ REST under `/api/v1`. Success responses are the resource DTO; the list endpoint 
 | PUT | `/api/v1/tasks/:id` | Update `{ "title": "...", "done": bool }` |
 | DELETE | `/api/v1/tasks/:id` | Delete |
 
+### API documentation
+
+The API is described by a hand-maintained OpenAPI 3.1 spec at `backend/api/openapi.yaml`, embedded into the binary and served at runtime:
+
+- **`/api/docs`** — interactive [Scalar](https://scalar.com) API reference (loads the Scalar UI from a pinned CDN; the spec itself is served locally).
+- **`/api/openapi.yaml`** — the raw spec.
+
+The spec is the source of truth. CI keeps it honest: a Spectral lint job (`.spectral.yaml`) checks it against the OpenAPI ruleset, and a Go test (`backend/api/openapi_test.go`) fails if the documented routes drift from what the handler registers. Update `openapi.yaml` whenever you change an endpoint.
+
 ## Caching & observability
 
 The tasks repository is wrapped by a **read-through Valkey cache** decorator (`repository.CachedRepository`) that also emits OpenTelemetry spans and Prometheus metrics — so every layer of the stack is exercised on the request path:

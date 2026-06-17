@@ -1,0 +1,267 @@
+openapi: 3.1.0
+info:
+  title: go-angular-spa-template API
+  version: 1.0.0
+  description: |
+    REST API for the go-angular-spa-template tasks example. The `tasks` resource
+    is a deletable stub demonstrating a full CRUD vertical slice; replace it with
+    your own feature under `internal/features/<name>/`.
+
+    Success responses return the resource DTO directly (the list endpoint wraps
+    its page as `{ "tasks": [...] }`). Errors use a consistent envelope:
+    `{ "error": "CODE", "message": "..." }`.
+  contact:
+    name: go-angular-spa-template
+    url: https://github.com/zercle/go-angular-spa-template
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: /
+    description: Same-origin (the SPA and API are served by one binary)
+tags:
+  - name: tasks
+    description: Task CRUD operations
+  - name: health
+    description: Liveness, readiness, and metrics
+paths:
+  /api/v1/tasks:
+    get:
+      tags: [tasks]
+      summary: List tasks
+      description: Return a page of tasks ordered by creation time (newest first).
+      operationId: listTasks
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of tasks to return. 0 (or omitted) uses the server default.
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+            maximum: 100
+        - name: offset
+          in: query
+          description: Number of tasks to skip (for pagination).
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+      responses:
+        "200":
+          description: A page of tasks.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListTasksResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+    post:
+      tags: [tasks]
+      summary: Create a task
+      description: Create a new task from the given title. Returns the created resource.
+      operationId: createTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTaskRequest"
+      responses:
+        "201":
+          description: The created task.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /api/v1/tasks/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Task identifier (UUID).
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags: [tasks]
+      summary: Get a task by ID
+      description: Return a single task by its UUID.
+      operationId: getTask
+      responses:
+        "200":
+          description: The requested task.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      tags: [tasks]
+      summary: Update a task
+      description: Replace a task's title and done state. Returns the updated resource.
+      operationId: updateTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTaskRequest"
+      responses:
+        "200":
+          description: The updated task.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [tasks]
+      summary: Delete a task
+      description: Delete a task by its UUID.
+      operationId: deleteTask
+      responses:
+        "204":
+          description: The task was deleted (no content).
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /healthz:
+    get:
+      tags: [health]
+      summary: Liveness probe
+      description: Report whether the process is alive. Used by orchestrators as a liveness check.
+      operationId: healthz
+      responses:
+        "200":
+          description: The process is alive.
+        "500":
+          description: The liveness registry reported an unexpected error.
+  /readyz:
+    get:
+      tags: [health]
+      summary: Readiness probe
+      description: Report whether all dependencies (database, cache) are reachable.
+      operationId: readyz
+      responses:
+        "200":
+          description: All dependencies (database, cache) are reachable.
+        "503":
+          description: One or more dependencies are not ready.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: not ready
+  /metrics:
+    get:
+      tags: [health]
+      summary: Prometheus metrics
+      description: Expose application metrics in the Prometheus text exposition format.
+      operationId: metrics
+      responses:
+        "200":
+          description: Metrics in the Prometheus text exposition format.
+          content:
+            text/plain:
+              schema:
+                type: string
+components:
+  schemas:
+    Task:
+      type: object
+      required: [id, title, done, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+          examples: ["8e5d5716-0e10-4b79-8e9f-a0deeca97e2c"]
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+          examples: ["Write the OpenAPI spec"]
+        done:
+          type: boolean
+          examples: [false]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CreateTaskRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+          examples: ["Write the OpenAPI spec"]
+    UpdateTaskRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+          examples: ["Write the OpenAPI spec"]
+        done:
+          type: boolean
+          default: false
+          examples: [true]
+    ListTasksResponse:
+      type: object
+      required: [tasks]
+      properties:
+        tasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Task"
+    Error:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          description: Machine-readable error code.
+          examples: ["INVALID_INPUT", "NOT_FOUND"]
+        message:
+          type: string
+          description: Human-readable description.
+          examples: ["invalid input"]
+  responses:
+    BadRequest:
+      description: The request was malformed or failed validation.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: INVALID_INPUT
+            message: invalid input
+    NotFound:
+      description: The requested resource does not exist.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: NOT_FOUND
+            message: resource not found

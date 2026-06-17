@@ -14,6 +14,7 @@ import (
 	echomw "github.com/labstack/echo/v5/middleware"
 	"github.com/rs/zerolog"
 
+	"github.com/zercle/go-angular-spa-template/api"
 	"github.com/zercle/go-angular-spa-template/internal/config"
 	"github.com/zercle/go-angular-spa-template/internal/shared/middleware"
 	"github.com/zercle/go-angular-spa-template/internal/shared/telemetry"
@@ -66,7 +67,37 @@ func NewHTTP(cfg *config.Config, logger *zerolog.Logger, registry *telemetry.Reg
 	e.GET("/readyz", readyzHandler(registry, logger))
 	e.GET("/metrics", echo.WrapHandler(telemetry.MetricsHandler()))
 
+	registerDocs(e)
+
 	return e
+}
+
+// scalarDocsHTML renders the embedded OpenAPI spec as interactive API docs via
+// Scalar. The Scalar UI bundle is loaded from a pinned CDN (the only network
+// dependency in the otherwise self-contained binary, and only for this page);
+// the spec itself is served locally from the embedded openapi.yaml.
+const scalarDocsHTML = `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>API Reference · go-angular-spa-template</title>
+  </head>
+  <body>
+    <script id="api-reference" data-url="/api/openapi.yaml"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.60.0/dist/browser/standalone.js"></script>
+  </body>
+</html>`
+
+// registerDocs serves the OpenAPI spec and the Scalar documentation UI. These
+// are explicit routes, so Echo ranks them above the SPA "/*" wildcard.
+func registerDocs(e *echo.Echo) {
+	e.GET("/api/openapi.yaml", func(c *echo.Context) error {
+		return c.Blob(http.StatusOK, "application/yaml; charset=utf-8", api.OpenAPISpec)
+	})
+	e.GET("/api/docs", func(c *echo.Context) error {
+		return c.HTMLBlob(http.StatusOK, []byte(scalarDocsHTML))
+	})
 }
 
 // healthzHandler returns the liveness handler. It returns 200 on success and
