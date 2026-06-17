@@ -1,0 +1,32 @@
+<form [formGroup]="form" (ngSubmit)="submit()" class="task-form">
+  <mat-form-field appearance="outline" class="title-field">
+    <mat-label>Task title</mat-label>
+    <input
+      matInput
+      type="text"
+      formControlName="title"
+      maxlength="200"
+      required
+      autocomplete="off"
+      enterkeyhint="done"
+      aria-describedby="title-error"
+    />
+    @if (form.controls.title.touched && form.controls.title.hasError('required')) {
+      <mat-error id="title-error">Title is required.</mat-error>
+    }
+    @if (form.controls.title.hasError('maxlength')) {
+      <mat-error id="title-error">Title must be 200 characters or fewer.</mat-error>
+    }
+  </mat-form-field>
+
+  @if (isEdit()) {
+    <mat-checkbox formControlName="done">Done</mat-checkbox>
+  }
+
+  <div class="actions">
+    <button matButton="filled" type="submit">{{ isEdit() ? 'Update' : 'Add task' }}</button>
+    @if (isEdit()) {
+      <button matButton type="button" (click)="cancelled.emit()">Cancel</button>
+    }
+  </div>
+</form>

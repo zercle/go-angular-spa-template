@@ -1,0 +1,49 @@
+<section class="tasks">
+  <header class="tasks__header">
+    <h1>Tasks</h1>
+    <p class="summary" aria-live="polite">
+      {{ store.remaining() }} of {{ store.tasks().length }} remaining
+    </p>
+  </header>
+
+  <app-task-form (save)="onCreate($event)" />
+
+  @if (store.loading()) {
+    <mat-progress-bar mode="indeterminate" aria-label="Loading tasks" />
+  }
+
+  @if (store.error(); as err) {
+    <p class="error" role="alert">{{ err }}</p>
+  }
+
+  <ul class="task-list" role="list">
+    @for (task of store.tasks(); track task.id) {
+      <li class="task-row">
+        @if (editingId() === task.id) {
+          <app-task-form
+            [task]="task"
+            (save)="onUpdate(task.id, $event)"
+            (cancelled)="editingId.set(null)"
+          />
+        } @else {
+          <mat-checkbox
+            [checked]="task.done"
+            (change)="store.toggle(task)"
+            [aria-label]="'Mark ' + task.title + ' as done'"
+          >
+            <span class="title" [class.title--done]="task.done">{{ task.title }}</span>
+          </mat-checkbox>
+          <span class="spacer"></span>
+          <button matIconButton type="button" (click)="editingId.set(task.id)" aria-label="Edit task">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button matIconButton type="button" (click)="store.remove(task.id)" aria-label="Delete task">
+            <mat-icon>delete</mat-icon>
+          </button>
+        }
+      </li>
+    } @empty {
+      <li class="empty">No tasks yet. Add your first one above.</li>
+    }
+  </ul>
+</section>

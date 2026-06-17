@@ -1,0 +1,11 @@
+**/node_modules
+**/.git
+**/.angular
+tmp/
+*.md
+.env
+.env.local
+frontend/coverage
+# Local SPA build artifacts (rebuilt inside the image)
+backend/web/dist/browser/*
+!backend/web/dist/browser/index.html

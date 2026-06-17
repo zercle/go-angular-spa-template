@@ -1,0 +1,21 @@
+# Go
+/tmp/
+/server
+*.test
+*.out
+
+# Env
+.env
+.env.local
+
+# Node / Angular
+node_modules/
+/frontend/.angular/
+/frontend/dist/
+/frontend/coverage/
+
+# Embedded build output — keep the placeholder index.html, ignore real build artifacts
+/backend/web/dist/**
+!/backend/web/dist/
+!/backend/web/dist/browser/
+!/backend/web/dist/browser/index.html
