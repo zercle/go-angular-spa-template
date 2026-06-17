@@ -52,6 +52,8 @@ type HTTPConfig struct {
 	WriteTimeout     time.Duration `mapstructure:"write_timeout" yaml:"write_timeout" env:"HTTP_WRITE_TIMEOUT" validate:"required,min=1s"`
 	IdleTimeout      time.Duration `mapstructure:"idle_timeout" yaml:"idle_timeout" env:"HTTP_IDLE_TIMEOUT" validate:"required,min=1s"`
 	BodyLimit        string        `mapstructure:"body_limit" yaml:"body_limit" env:"HTTP_BODY_LIMIT" validate:"required"`
+	RateLimitEnabled bool          `mapstructure:"rate_limit_enabled" yaml:"rate_limit_enabled" env:"HTTP_RATE_LIMIT_ENABLED"`
+	RateLimitRPS     float64       `mapstructure:"rate_limit_rps" yaml:"rate_limit_rps" env:"HTTP_RATE_LIMIT_RPS" validate:"min=0"`
 	CORSAllowOrigins []string      `mapstructure:"cors_allow_origins" yaml:"cors_allow_origins" env:"HTTP_CORS_ALLOW_ORIGINS"`
 	CORSAllowMethods []string      `mapstructure:"cors_allow_methods" yaml:"cors_allow_methods" env:"HTTP_CORS_ALLOW_METHODS"`
 	CORSAllowHeaders []string      `mapstructure:"cors_allow_headers" yaml:"cors_allow_headers" env:"HTTP_CORS_ALLOW_HEADERS"`
@@ -212,6 +214,8 @@ func setDefaults(v *viper.Viper) {
 		"http.write_timeout":      15 * time.Second,
 		"http.idle_timeout":       60 * time.Second,
 		"http.body_limit":         "1M",
+		"http.rate_limit_enabled": true,
+		"http.rate_limit_rps":     20.0,
 		"http.cors_allow_origins": []string{},
 		"http.cors_allow_methods": []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		"http.cors_allow_headers": []string{"Authorization", "Content-Type", "X-Request-ID"},
@@ -257,6 +261,8 @@ func leafBindings() []leafBinding {
 		{"http.write_timeout", "HTTP_WRITE_TIMEOUT"},
 		{"http.idle_timeout", "HTTP_IDLE_TIMEOUT"},
 		{"http.body_limit", "HTTP_BODY_LIMIT"},
+		{"http.rate_limit_enabled", "HTTP_RATE_LIMIT_ENABLED"},
+		{"http.rate_limit_rps", "HTTP_RATE_LIMIT_RPS"},
 		{"http.cors_allow_origins", "HTTP_CORS_ALLOW_ORIGINS"},
 		{"http.cors_allow_methods", "HTTP_CORS_ALLOW_METHODS"},
 		{"http.cors_allow_headers", "HTTP_CORS_ALLOW_HEADERS"},

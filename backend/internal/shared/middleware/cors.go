@@ -33,6 +33,8 @@ func CORS(cfg *config.Config) echo.MiddlewareFunc {
 	}
 
 	if len(corsCfg.AllowOrigins) == 0 {
+		// Wildcard is a dev-convenience default only; production deployments
+		// should set explicit origins via HTTP_CORS_ALLOW_ORIGINS / config.
 		corsCfg.AllowOrigins = []string{"*"}
 	}
 	if len(corsCfg.AllowMethods) == 0 {

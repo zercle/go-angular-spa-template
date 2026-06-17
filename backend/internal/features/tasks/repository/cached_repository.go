@@ -71,7 +71,11 @@ func (r *CachedRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.T
 
 	if b, ok := r.cache.Get(ctx, taskKey(id)); ok {
 		var cached domain.Task
-		if json.Unmarshal(b, &cached) == nil {
+		if err := json.Unmarshal(b, &cached); err != nil {
+			// Corrupt/stale cache entry: record on the span for debugging and
+			// fall through to the source of truth (best-effort cache).
+			span.RecordError(err)
+		} else {
 			span.SetAttributes(attribute.Bool("cache.hit", true))
 			r.metrics.Hits.Add(ctx, 1, metric.WithAttributes(attribute.String("op", "get")))
 			return &cached, nil
@@ -98,7 +102,11 @@ func (r *CachedRepository) List(ctx context.Context, limit, offset int32) ([]dom
 	key := r.listKey(ctx, limit, offset)
 	if b, ok := r.cache.Get(ctx, key); ok {
 		var cached []domain.Task
-		if json.Unmarshal(b, &cached) == nil {
+		if err := json.Unmarshal(b, &cached); err != nil {
+			// Corrupt/stale cache entry: record on the span for debugging and
+			// fall through to the source of truth (best-effort cache).
+			span.RecordError(err)
+		} else {
 			span.SetAttributes(attribute.Bool("cache.hit", true))
 			r.metrics.Hits.Add(ctx, 1, metric.WithAttributes(attribute.String("op", "list")))
 			return cached, nil

@@ -45,15 +45,22 @@ func NewHTTP(cfg *config.Config, logger *zerolog.Logger, registry *telemetry.Reg
 	e.Use(middleware.RequestID())
 	e.Use(middleware.OTel())
 	e.Use(middleware.AccessLog(logger))
+	e.Use(secureMiddleware(cfg))
+	e.Use(echomw.GzipWithConfig(echomw.GzipConfig{Skipper: opsEndpointSkipper}))
 	e.Use(middleware.CORS(cfg))
+	if cfg.HTTP.RateLimitEnabled && cfg.HTTP.RateLimitRPS > 0 {
+		e.Use(echomw.RateLimiterWithConfig(echomw.RateLimiterConfig{
+			Skipper: opsEndpointSkipper,
+			Store:   echomw.NewRateLimiterMemoryStore(cfg.HTTP.RateLimitRPS),
+		}))
+	}
 	if limit := parseBodyLimitBytes(cfg.HTTP.BodyLimit); limit > 0 {
 		e.Use(echomw.BodyLimit(limit))
 	}
 
-	// TODO: apply HTTP read/write/idle timeouts once echo v5 exposes the
-	// underlying *http.Server (echo v5 StartConfig.BeforeServeFunc is the
-	// supported hook, but it is set where the server is started, not here).
-	_ = cfg
+	// Read/write/idle timeouts are applied onto the underlying *http.Server in
+	// StartHTTP via echo v5's StartConfig.BeforeServeFunc, the supported hook
+	// for reaching the server that NewHTTP does not own.
 
 	e.GET("/healthz", healthzHandler(registry, logger))
 	e.GET("/readyz", readyzHandler(registry, logger))
@@ -90,6 +97,32 @@ func readyzHandler(registry *telemetry.Registry, logger *zerolog.Logger) echo.Ha
 			})
 		}
 		return c.NoContent(http.StatusOK)
+	}
+}
+
+// secureMiddleware returns echo's security-headers middleware with sane
+// defaults (X-Frame-Options: SAMEORIGIN, X-Content-Type-Options: nosniff).
+// HSTS is only enabled outside development so that local plain-HTTP requests
+// are not pinned to HTTPS by the browser.
+func secureMiddleware(cfg *config.Config) echo.MiddlewareFunc {
+	secCfg := echomw.SecureConfig{
+		ContentTypeNosniff: "nosniff",
+		XFrameOptions:      "SAMEORIGIN",
+	}
+	if cfg != nil && cfg.App.Environment != "development" && cfg.App.Environment != "test" {
+		secCfg.HSTSMaxAge = int((365 * 24 * time.Hour).Seconds())
+	}
+	return echomw.SecureWithConfig(secCfg)
+}
+
+// opsEndpointSkipper skips middleware (gzip, rate limiting) for the operational
+// endpoints so scrapers and probes are not throttled or recompressed.
+func opsEndpointSkipper(c *echo.Context) bool {
+	switch c.Request().URL.Path {
+	case "/metrics", "/healthz", "/readyz":
+		return true
+	default:
+		return false
 	}
 }
 
