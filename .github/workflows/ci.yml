@@ -152,8 +152,12 @@ jobs:
         with:
           bun-version: 1.3.8
       - run: bun install --frozen-lockfile
-      - name: Audit dependencies (bun audit)
-        run: bun audit --audit-level=high
+      - name: Audit production dependencies (bun audit)
+        # Audit only runtime deps that ship in the embedded bundle. Build-time
+        # devDependencies (vite/esbuild via @angular/build, vitest) carry
+        # advisories that can't be resolved until Angular bumps them and never
+        # reach the browser, so gating on them would wedge CI.
+        run: bun audit --production
       - run: bunx ng lint
       - run: bunx ng test --watch=false
       - run: bun run build
