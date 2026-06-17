@@ -32,9 +32,6 @@ http:
   write_timeout: 10s
   idle_timeout: 30s
   body_limit: 2M
-grpc:
-  host: 127.0.0.1
-  port: 7002
 db:
   host: 127.0.0.1
   port: 5432
@@ -230,13 +227,6 @@ func TestDBConnString(t *testing.T) {
 	require.Equal(t, "disable", parsed.Query().Get("sslmode"))
 }
 
-func TestGRPCAddr(t *testing.T) {
-	cfg := validConfig()
-	cfg.GRPC.Host = "127.0.0.1"
-	cfg.GRPC.Port = 50051
-	require.Equal(t, "127.0.0.1:50051", cfg.GRPCAddr())
-}
-
 func validConfig() *config.Config {
 	return &config.Config{
 		App: config.AppConfig{
@@ -253,10 +243,6 @@ func validConfig() *config.Config {
 			WriteTimeout: 15 * time.Second,
 			IdleTimeout:  60 * time.Second,
 			BodyLimit:    "1M",
-		},
-		GRPC: config.GRPCConfig{
-			Host: "127.0.0.1",
-			Port: 50051,
 		},
 		DB: config.DBConfig{
 			Host:           "127.0.0.1",

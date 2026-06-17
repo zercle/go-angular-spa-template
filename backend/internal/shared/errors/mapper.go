@@ -1,12 +1,10 @@
-// HTTP and gRPC mapping logic for the shared boundary errors.
+// HTTP mapping logic for the shared boundary errors.
 package errors
 
 import (
 	"context"
 	"errors"
 	"net/http"
-
-	"google.golang.org/grpc/status"
 )
 
 // HTTPError maps any error to an HTTP status code and a JSON-shaped response
@@ -24,17 +22,6 @@ func HTTPError(err error) (int, map[string]any) {
 	}
 
 	return app.HTTPStatus, body
-}
-
-// GRPCErr maps any error to a gRPC status error. A nil error maps to nil.
-func GRPCErr(err error) error {
-	if err == nil {
-		return nil
-	}
-
-	app := resolveAppError(err)
-
-	return status.Error(app.GRPCCode, app.Message)
 }
 
 // resolveAppError converts err into an AppError using, in order:

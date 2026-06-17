@@ -62,19 +62,10 @@ tasks:
       - git diff --exit-code go.mod go.sum
 
   generate:
-    desc: Generate mocks, sqlc, and protobuf code
+    desc: Generate mocks and sqlc code
     cmds:
       - go generate ./...
       - sqlc generate
-      - task: proto
-
-  proto:
-    desc: Generate protobuf code
-    cmds:
-      - |
-        protoc -I api/proto --go_out=api/pb --go_opt=paths=source_relative \
-               --go-grpc_out=api/pb --go-grpc_opt=paths=source_relative \
-               tasks/v1/tasks.proto
 
   migrate-up:
     desc: Run database migrations

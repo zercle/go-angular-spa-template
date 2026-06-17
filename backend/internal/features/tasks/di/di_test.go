@@ -49,7 +49,6 @@ func TestRegister_WithStubs(t *testing.T) {
 			IdleTimeout:  60 * time.Second,
 			BodyLimit:    "1M",
 		},
-		GRPC:   config.GRPCConfig{Host: "0.0.0.0", Port: 50051},
 		OTel:   config.OTelConfig{Exporter: "none", ServiceName: "test"},
 		Log:    config.LogConfig{Level: "info", Format: "json"},
 		Valkey: config.ValkeyConfig{Host: "127.0.0.1", Port: 6379, DB: 0},

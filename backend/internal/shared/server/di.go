@@ -5,15 +5,14 @@ import (
 	"github.com/labstack/echo/v5"
 	"github.com/rs/zerolog"
 	"github.com/samber/do/v2"
-	"google.golang.org/grpc"
 
 	"github.com/zercle/go-angular-spa-template/internal/config"
 	"github.com/zercle/go-angular-spa-template/internal/shared/telemetry"
 )
 
-// Register wires *echo.Echo, *grpc.Server, and the Application orchestrator
-// into the DI container. It depends on config, logger, telemetry providers,
-// and the health registry already being registered.
+// Register wires *echo.Echo and the Application orchestrator into the DI
+// container. It depends on config, logger, telemetry providers, and the health
+// registry already being registered.
 //
 // Note: samber/do v2's Provide signature is `func Provide[T any](i Injector,
 // provider Provider[T])` and returns no error. Any construction failure
@@ -25,11 +24,6 @@ func Register(c do.Injector) error {
 		logger := do.MustInvoke[*zerolog.Logger](i)
 		registry := do.MustInvoke[*telemetry.Registry](i)
 		return NewHTTP(cfg, logger, registry), nil
-	})
-
-	do.Provide(c, func(i do.Injector) (*grpc.Server, error) {
-		logger := do.MustInvoke[*zerolog.Logger](i)
-		return NewGRPC(logger), nil
 	})
 
 	do.Provide(c, func(i do.Injector) (*Application, error) {

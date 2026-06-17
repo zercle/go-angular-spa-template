@@ -8,9 +8,6 @@ import (
 	"net/http"
 	"testing"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
 	sharederrors "github.com/zercle/go-angular-spa-template/internal/shared/errors"
 )
 
@@ -35,7 +32,6 @@ func TestHTTPError_AppError(t *testing.T) {
 		Code:       "BOOM",
 		Message:    "boom message",
 		HTTPStatus: http.StatusTeapot,
-		GRPCCode:   codes.Unavailable,
 		Cause:      errors.New("cause"),
 	}
 	status, body := sharederrors.HTTPError(app)
@@ -94,50 +90,5 @@ func TestHTTPError_UnknownDoesNotLeakCause(t *testing.T) {
 	}
 	if body["message"] != "internal error" {
 		t.Fatalf("expected sentinel message, got %v", body["message"])
-	}
-}
-
-func TestGRPCErr_Nil(t *testing.T) {
-	if sharederrors.GRPCErr(nil) != nil {
-		t.Fatal("expected nil for nil error")
-	}
-}
-
-func TestGRPCErr_AppError(t *testing.T) {
-	app := &sharederrors.AppError{
-		Code:       "BOOM",
-		Message:    "boom message",
-		HTTPStatus: http.StatusTeapot,
-		GRPCCode:   codes.Unavailable,
-	}
-	err := sharederrors.GRPCErr(app)
-	st, ok := status.FromError(err)
-	if !ok {
-		t.Fatal("expected status error")
-	}
-	if st.Code() != codes.Unavailable {
-		t.Fatalf("expected code %v, got %v", codes.Unavailable, st.Code())
-	}
-}
-
-func TestGRPCErr_RegisteredSentinel(t *testing.T) {
-	err := sharederrors.GRPCErr(errDomainSentinel)
-	st, ok := status.FromError(err)
-	if !ok {
-		t.Fatal("expected status error")
-	}
-	if st.Code() != codes.NotFound {
-		t.Fatalf("expected code %v, got %v", codes.NotFound, st.Code())
-	}
-}
-
-func TestGRPCErr_Unknown(t *testing.T) {
-	err := sharederrors.GRPCErr(errors.New("random failure"))
-	st, ok := status.FromError(err)
-	if !ok {
-		t.Fatal("expected status error")
-	}
-	if st.Code() != codes.Internal {
-		t.Fatalf("expected code %v, got %v", codes.Internal, st.Code())
 	}
 }

@@ -53,6 +53,11 @@ frontend/.angular/
 frontend/coverage/
 frontend/dist/
 
-# Embedded SPA build output — keep the placeholder index.html, ignore real build artifacts
+# Embedded SPA build output — ignore the whole tree except the committed .gitkeep.
+# The Go binary needs dist/browser to exist for //go:embed; the real build is
+# produced by `task build` and served at runtime, with a built-in fallback page
+# when the frontend hasn't been built yet.
+/backend/internal/web/dist/*
+!/backend/internal/web/dist/browser
 /backend/internal/web/dist/browser/*
-!/backend/internal/web/dist/browser/index.html
+!/backend/internal/web/dist/browser/.gitkeep

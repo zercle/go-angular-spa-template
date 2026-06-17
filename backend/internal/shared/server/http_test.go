@@ -119,9 +119,3 @@ func TestNewHTTP_ValidatorBinding(t *testing.T) {
 	e.ServeHTTP(rec, invalid)
 	require.Equal(t, http.StatusBadRequest, rec.Code)
 }
-
-func TestNewGRPC(t *testing.T) {
-	logger := zerolog.New(nil)
-	gs := server.NewGRPC(&logger)
-	require.NotNil(t, gs)
-}

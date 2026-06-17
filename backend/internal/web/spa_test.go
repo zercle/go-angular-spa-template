@@ -3,7 +3,6 @@
 package web_test
 
 import (
-	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -16,14 +15,25 @@ import (
 	"github.com/zercle/go-angular-spa-template/internal/web"
 )
 
-func TestSPA_EmbedPresent(t *testing.T) {
+func TestSPA_EmbedAccessible(t *testing.T) {
 	t.Parallel()
-	fsys, err := web.SPA()
+	// The embedded FS is always resolvable; whether index.html is present
+	// depends on whether the frontend has been built.
+	_, err := web.SPA()
 	require.NoError(t, err)
+}
 
-	idx, err := fs.ReadFile(fsys, "index.html")
-	require.NoError(t, err)
-	assert.NotEmpty(t, idx)
+func TestSPA_Register_NoIndex_FallsBack(t *testing.T) {
+	t.Parallel()
+	e := echo.New()
+	// Empty dist (frontend not built) → Register must not error and must serve
+	// the built-in fallback page.
+	require.NoError(t, web.Register(e, fstest.MapFS{}))
+
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Contains(t, rec.Body.String(), "Frontend not built")
 }
 
 func TestSPA_Register(t *testing.T) {
@@ -46,10 +56,4 @@ func TestSPA_Register(t *testing.T) {
 	e.ServeHTTP(recRoute, httptest.NewRequest(http.MethodGet, "/tasks/123", nil))
 	assert.Equal(t, http.StatusOK, recRoute.Code)
 	assert.Contains(t, recRoute.Body.String(), "shell")
-
-	// Root serves index.html.
-	recRoot := httptest.NewRecorder()
-	e.ServeHTTP(recRoot, httptest.NewRequest(http.MethodGet, "/", nil))
-	assert.Equal(t, http.StatusOK, recRoot.Code)
-	assert.Contains(t, recRoot.Body.String(), "shell")
 }

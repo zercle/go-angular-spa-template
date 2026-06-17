@@ -40,5 +40,4 @@ COPY --from=builder --chown=nonroot:nonroot /server /server
 COPY --from=builder --chown=nonroot:nonroot /build/config.yaml /config.yaml
 USER nonroot:nonroot
 EXPOSE 8080
-EXPOSE 50051
 ENTRYPOINT ["/server"]

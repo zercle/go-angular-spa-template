@@ -1,4 +1,4 @@
-// Package server constructs and configures the shared HTTP and gRPC servers.
+// Package server constructs and configures the shared HTTP server.
 package server
 
 import (

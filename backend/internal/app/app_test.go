@@ -35,7 +35,6 @@ func TestBuild_DatabaseUnreachable(t *testing.T) {
 			IdleTimeout:  60 * time.Second,
 			BodyLimit:    "1M",
 		},
-		GRPC: config.GRPCConfig{Host: "0.0.0.0", Port: 50051},
 		DB: config.DBConfig{
 			Host:           "192.0.2.1", // TEST-NET-1, should not be reachable
 			Port:           5432,

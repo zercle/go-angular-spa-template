@@ -26,10 +26,6 @@ http:
     - Content-Type
     - X-Request-ID
 
-grpc:
-  host: 0.0.0.0
-  port: 50051
-
 db:
   host: localhost
   port: 5432

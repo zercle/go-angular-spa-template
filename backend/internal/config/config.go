@@ -28,7 +28,6 @@ type leafBinding struct {
 type Config struct {
 	App    AppConfig    `mapstructure:"app" yaml:"app" validate:"required"`
 	HTTP   HTTPConfig   `mapstructure:"http" yaml:"http" validate:"required"`
-	GRPC   GRPCConfig   `mapstructure:"grpc" yaml:"grpc" validate:"required"`
 	DB     DBConfig     `mapstructure:"db" yaml:"db" validate:"required"`
 	Valkey ValkeyConfig `mapstructure:"valkey" yaml:"valkey" validate:"required"`
 	OTel   OTelConfig   `mapstructure:"otel" yaml:"otel" validate:"required"`
@@ -56,12 +55,6 @@ type HTTPConfig struct {
 	CORSAllowOrigins []string      `mapstructure:"cors_allow_origins" yaml:"cors_allow_origins" env:"HTTP_CORS_ALLOW_ORIGINS"`
 	CORSAllowMethods []string      `mapstructure:"cors_allow_methods" yaml:"cors_allow_methods" env:"HTTP_CORS_ALLOW_METHODS"`
 	CORSAllowHeaders []string      `mapstructure:"cors_allow_headers" yaml:"cors_allow_headers" env:"HTTP_CORS_ALLOW_HEADERS"`
-}
-
-// GRPCConfig holds the gRPC server settings.
-type GRPCConfig struct {
-	Host string `mapstructure:"host" yaml:"host" env:"GRPC_HOST" validate:"ip|hostname"`
-	Port int    `mapstructure:"port" yaml:"port" env:"GRPC_PORT" validate:"required,min=1,max=65535"`
 }
 
 // DBConfig holds the PostgreSQL connection and pool settings.
@@ -182,11 +175,6 @@ func (c *Config) HTTPAddr() string {
 	return net.JoinHostPort(c.HTTP.Host, strconv.Itoa(c.HTTP.Port))
 }
 
-// GRPCAddr returns the gRPC listen address.
-func (c *Config) GRPCAddr() string {
-	return net.JoinHostPort(c.GRPC.Host, strconv.Itoa(c.GRPC.Port))
-}
-
 // DBConnString returns a pgx-compatible DSN.
 func (c *Config) DBConnString() string {
 	u := url.URL{
@@ -227,9 +215,6 @@ func setDefaults(v *viper.Viper) {
 		"http.cors_allow_origins": []string{},
 		"http.cors_allow_methods": []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		"http.cors_allow_headers": []string{"Authorization", "Content-Type", "X-Request-ID"},
-
-		"grpc.host": defaultHost,
-		"grpc.port": 50051,
 
 		"db.ssl_mode":        "disable",
 		"db.max_conns":       10,
@@ -275,9 +260,6 @@ func leafBindings() []leafBinding {
 		{"http.cors_allow_origins", "HTTP_CORS_ALLOW_ORIGINS"},
 		{"http.cors_allow_methods", "HTTP_CORS_ALLOW_METHODS"},
 		{"http.cors_allow_headers", "HTTP_CORS_ALLOW_HEADERS"},
-
-		{"grpc.host", "GRPC_HOST"},
-		{"grpc.port", "GRPC_PORT"},
 
 		{"db.host", "DB_HOST"},
 		{"db.port", "DB_PORT"},

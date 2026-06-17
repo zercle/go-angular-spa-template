@@ -11,9 +11,7 @@ import (
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 
-	pb "github.com/zercle/go-angular-spa-template/api/pb/tasks/v1"
 	"github.com/zercle/go-angular-spa-template/internal/features/tasks/domain"
-	grpchandler "github.com/zercle/go-angular-spa-template/internal/features/tasks/handler/grpc"
 	httphandler "github.com/zercle/go-angular-spa-template/internal/features/tasks/handler/http"
 	"github.com/zercle/go-angular-spa-template/internal/features/tasks/repository"
 	"github.com/zercle/go-angular-spa-template/internal/features/tasks/service"
@@ -21,7 +19,6 @@ import (
 	sharederrors "github.com/zercle/go-angular-spa-template/internal/shared/errors"
 
 	"github.com/labstack/echo/v5"
-	"google.golang.org/grpc"
 )
 
 // Register wires the tasks feature into the composition root.
@@ -74,11 +71,6 @@ func Register(c do.Injector) error {
 		return httphandler.New(svc), nil
 	})
 
-	do.Provide(c, func(i do.Injector) (*grpchandler.Server, error) {
-		svc := do.MustInvoke[domain.Service](i)
-		return grpchandler.NewServer(svc), nil
-	})
-
 	h, err := do.Invoke[*httphandler.Handler](c)
 	if err != nil {
 		return fmt.Errorf("resolve tasks http handler: %w", err)
@@ -89,16 +81,6 @@ func Register(c do.Injector) error {
 	}
 	g := e.Group("/api/v1")
 	h.Register(g)
-
-	gs, err := do.Invoke[*grpc.Server](c)
-	if err != nil {
-		return fmt.Errorf("resolve tasks grpc server: %w", err)
-	}
-	grpcHandler, err := do.Invoke[*grpchandler.Server](c)
-	if err != nil {
-		return fmt.Errorf("resolve tasks grpc handler: %w", err)
-	}
-	pb.RegisterTaskServiceServer(gs, grpcHandler)
 
 	return nil
 }
