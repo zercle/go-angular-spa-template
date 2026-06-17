@@ -83,14 +83,14 @@ func TestServer_EndToEnd(t *testing.T) {
 		return r.StatusCode == http.StatusOK
 	}, 5*time.Second, 250*time.Millisecond, "readiness probe never passed")
 
-	// POST /api/v1/items creates an item.
-	resp, err = client.Post(server.URL+"/api/v1/items", "application/json", strings.NewReader(`{"name":"stub"}`))
+	// POST /api/v1/tasks creates a task.
+	resp, err = client.Post(server.URL+"/api/v1/tasks", "application/json", strings.NewReader(`{"title":"stub"}`))
 	require.NoError(t, err)
 	require.Equal(t, http.StatusCreated, resp.StatusCode)
 	_ = resp.Body.Close()
 
-	// GET /api/v1/items/:id retrieves it.
-	resp, err = client.Get(server.URL + "/api/v1/items")
+	// GET /api/v1/tasks/:id lists tasks.
+	resp, err = client.Get(server.URL + "/api/v1/tasks")
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	_ = resp.Body.Close()

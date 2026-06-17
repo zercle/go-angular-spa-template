@@ -60,7 +60,7 @@ func (s *RepositoryIntegrationSuite) SetupTest() {
 	t := s.T()
 	t.Helper()
 
-	_, err := s.pool.Exec(context.Background(), "TRUNCATE TABLE items RESTART IDENTITY CASCADE")
+	_, err := s.pool.Exec(context.Background(), "TRUNCATE TABLE tasks RESTART IDENTITY CASCADE")
 	require.NoError(t, err)
 }
 
