@@ -19,7 +19,7 @@ export class TaskList {
   readonly store = inject(TaskStore);
 
   /** Id of the task currently being edited inline, if any. */
-  readonly editingId = signal<number | null>(null);
+  readonly editingId = signal<string | null>(null);
 
   constructor() {
     void this.store.load();
@@ -29,7 +29,7 @@ export class TaskList {
     void this.store.add({ title: value.title });
   }
 
-  onUpdate(id: number, value: TaskFormValue): void {
+  onUpdate(id: string, value: TaskFormValue): void {
     void this.store.update(id, value).then(() => this.editingId.set(null));
   }
 }

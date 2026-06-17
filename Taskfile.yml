@@ -1,0 +1,76 @@
+version: '3'
+
+# Root orchestrator for the monorepo. Backend-specific targets (proto, sqlc,
+# migrate, test tags, lint) live in backend/Taskfile.yml and are included here.
+includes:
+  backend:
+    taskfile: ./backend/Taskfile.yml
+    dir: ./backend
+
+tasks:
+  default:
+    cmds:
+      - task --list
+    silent: true
+
+  setup:
+    desc: Install frontend deps (backend tools via 'task backend:tools')
+    dir: frontend
+    cmds:
+      - bun install
+
+  db-up:
+    desc: Start Postgres + Valkey
+    cmds:
+      - docker compose up -d postgres valkey
+
+  db-down:
+    desc: Stop all compose services
+    cmds:
+      - docker compose down
+
+  migrate:
+    desc: Apply database migrations
+    dir: backend
+    cmds:
+      - go run ./cmd/migrate up
+
+  dev:
+    desc: Run backend (:8080) + Angular dev server (:4200, proxying /api)
+    deps: [db-up]
+    cmds:
+      - |
+        trap 'kill 0' EXIT
+        ( cd backend && go run ./cmd/server ) &
+        ( cd frontend && bun run start ) &
+        wait
+
+  build:
+    desc: Build the single self-contained binary (frontend embedded into backend)
+    cmds:
+      - cd frontend && bun run build
+      - cd backend && go build -ldflags="-s -w" -o bin/server ./cmd/server
+      - echo "Built backend/bin/server (SPA embedded)"
+
+  run:
+    desc: Build and run the single binary
+    deps: [db-up, build]
+    cmds:
+      - cd backend && ./bin/server
+
+  test:
+    desc: Run backend unit tests + frontend tests
+    cmds:
+      - task: backend:test-unit
+      - cd frontend && bunx ng test --watch=false
+
+  lint:
+    desc: Lint backend + frontend
+    cmds:
+      - task: backend:lint
+      - cd frontend && bunx ng lint
+
+  docker:
+    desc: Build the production server image (SPA embedded)
+    cmds:
+      - docker build -f Containerfile -t go-angular-spa-template .

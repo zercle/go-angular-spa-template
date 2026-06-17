@@ -10,5 +10,5 @@ import { MatToolbarModule } from '@angular/material/toolbar';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App {
-  protected readonly title = 'GoFiber + Angular SPA';
+  protected readonly title = 'Go + Angular SPA';
 }

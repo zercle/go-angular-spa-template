@@ -23,7 +23,7 @@ describe('TaskList', () => {
 
   it('should create and request tasks on init', async () => {
     const req = httpMock.expectOne('/api/v1/tasks');
-    req.flush({ data: [] });
+    req.flush({ tasks: [] });
     await fixture.whenStable();
 
     expect(component).toBeTruthy();

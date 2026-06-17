@@ -2,7 +2,7 @@ import { Service, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom, map } from 'rxjs';
 
-import { CreateTask, Envelope, Task, UpdateTask } from './task';
+import { CreateTask, ListTasksResponse, Task, UpdateTask } from './task';
 
 /**
  * Signal-based store for the tasks resource. Holds the canonical client-side
@@ -25,13 +25,13 @@ export class TaskStore {
   /** Derived count of not-yet-done tasks. */
   readonly remaining = computed(() => this._tasks().filter((t) => !t.done).length);
 
-  /** Fetches all tasks into state. */
+  /** Fetches all tasks into state (list endpoint returns { tasks: [...] }). */
   async load(): Promise<void> {
     this._loading.set(true);
     this._error.set(null);
     try {
       const tasks = await firstValueFrom(
-        this.http.get<Envelope<Task[]>>(this.baseUrl).pipe(map((r) => r.data)),
+        this.http.get<ListTasksResponse>(this.baseUrl).pipe(map((r) => r.tasks)),
       );
       this._tasks.set(tasks);
     } catch {
@@ -43,17 +43,13 @@ export class TaskStore {
 
   /** Creates a task and prepends it to state. */
   async add(input: CreateTask): Promise<void> {
-    const created = await firstValueFrom(
-      this.http.post<Envelope<Task>>(this.baseUrl, input).pipe(map((r) => r.data)),
-    );
+    const created = await firstValueFrom(this.http.post<Task>(this.baseUrl, input));
     this._tasks.update((list) => [created, ...list]);
   }
 
   /** Updates a task and replaces it in state. */
-  async update(id: number, input: UpdateTask): Promise<void> {
-    const updated = await firstValueFrom(
-      this.http.put<Envelope<Task>>(`${this.baseUrl}/${id}`, input).pipe(map((r) => r.data)),
-    );
+  async update(id: string, input: UpdateTask): Promise<void> {
+    const updated = await firstValueFrom(this.http.put<Task>(`${this.baseUrl}/${id}`, input));
     this._tasks.update((list) => list.map((t) => (t.id === id ? updated : t)));
   }
 
@@ -63,7 +59,7 @@ export class TaskStore {
   }
 
   /** Deletes a task and removes it from state. */
-  async remove(id: number): Promise<void> {
+  async remove(id: string): Promise<void> {
     await firstValueFrom(this.http.delete<void>(`${this.baseUrl}/${id}`));
     this._tasks.update((list) => list.filter((t) => t.id !== id));
   }

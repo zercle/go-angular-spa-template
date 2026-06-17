@@ -1,53 +1,52 @@
-// Command server is the composition root: it loads config, runs migrations,
-// wires the clean-architecture layers, and starts the Fiber HTTP server that
-// serves both the JSON API and the embedded Angular SPA.
+// Command server is the composition root and runtime entry point. It loads
+// config and delegates to package app for DI wiring, then starts and gracefully
+// shuts down the HTTP and gRPC servers.
 package main
 
 import (
 	"context"
-	"log/slog"
+	"fmt"
 	"os"
 
-	"github.com/cerzzlive/gofiber-angular-spa/backend/internal/config"
-	"github.com/cerzzlive/gofiber-angular-spa/backend/internal/delivery/rest"
-	"github.com/cerzzlive/gofiber-angular-spa/backend/internal/repository/postgres"
-	"github.com/cerzzlive/gofiber-angular-spa/backend/internal/usecase"
-	"github.com/cerzzlive/gofiber-angular-spa/backend/web"
+	"github.com/zercle/go-angular-spa-template/internal/app"
+	"github.com/zercle/go-angular-spa-template/internal/config"
+)
+
+var (
+	// Version is set at build time via -ldflags "-X main.Version=...".
+	Version = "dev"
+	// CommitSHA is set at build time via -ldflags "-X main.CommitSHA=...".
+	CommitSHA = "unknown"
+	// BuildTime is set at build time via -ldflags "-X main.BuildTime=...".
+	BuildTime = "unknown"
 )
 
 func main() {
-	log := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-
-	if err := run(log); err != nil {
-		log.Error("fatal", "err", err)
-		os.Exit(1)
-	}
+	os.Exit(run())
 }
 
-func run(log *slog.Logger) error {
-	cfg := config.Load()
-
-	if err := postgres.Migrate(cfg.DatabaseURL); err != nil {
-		return err
-	}
-	log.Info("migrations applied")
-
-	ctx := context.Background()
-	pool, err := postgres.NewPool(ctx, cfg.DatabaseURL)
+// run loads configuration and starts the application. It returns the process
+// exit code so main can exit in one place, allowing defers in app.Run to run.
+func run() (exitCode int) {
+	cfg, err := config.Load()
 	if err != nil {
-		return err
-	}
-	defer pool.Close()
-
-	repo := postgres.NewTaskRepository(pool)
-	svc := usecase.NewTaskService(repo)
-
-	spa, err := web.SPA()
-	if err != nil {
-		return err
+		fmt.Fprintf(os.Stderr, "failed to load config: %v\n", err)
+		return 1
 	}
 
-	app := rest.NewRouter(svc, spa)
-	log.Info("server listening", "port", cfg.Port, "env", cfg.AppEnv)
-	return app.Listen(":" + cfg.Port)
+	if err := cfg.Validate(); err != nil {
+		fmt.Fprintf(os.Stderr, "invalid config: %v\n", err)
+		return 1
+	}
+
+	app.Version = Version
+	app.CommitSHA = CommitSHA
+	app.BuildTime = BuildTime
+
+	if err := app.Run(context.Background(), cfg); err != nil {
+		fmt.Fprintf(os.Stderr, "server stopped with error: %v\n", err)
+		return 1
+	}
+
+	return 0
 }

@@ -1,111 +1,109 @@
-# GoFiber + Angular SPA — Template
+# go-angular-spa-template
 
-A clean, modern full-stack template pairing a **[GoFiber v3](https://gofiber.io/) (Go 1.26)** backend with an **[Angular 22](https://angular.dev/)** SPA, deployable as a **single self-contained binary**. It ships one end-to-end vertical slice — a `tasks` CRUD resource — that exercises every layer so you can clone it and start building.
+A full-stack template: an **Echo v5 (Go 1.26)** backend with **gRPC, OpenTelemetry/Prometheus, Valkey, and Postgres**, paired with an **Angular 22** SPA — shipped as a **single self-contained binary** (the Angular build is embedded into the Go binary via `embed.FS`).
+
+The backend architecture mirrors [`zercle/zercle-go-template`](https://github.com/zercle/zercle-go-template): feature-sliced clean architecture, `samber/do` dependency injection, viper config, zerolog, golang-migrate, sqlc, and UUID identifiers. The example vertical slice is a `tasks` CRUD resource exercised end-to-end by the Angular UI.
 
 ## Stack
 
 | Layer | Choice |
 | --- | --- |
-| Backend | GoFiber v3, clean architecture (domain / usecase / delivery / infrastructure) |
-| Database | Postgres + [sqlc](https://sqlc.dev/) (type-safe queries) + [pgx/v5](https://github.com/jackc/pgx) |
-| Migrations | [goose](https://github.com/pressly/goose) — embedded, auto-applied on startup |
-| Frontend | Angular 22 (standalone, signals, zoneless), Angular Material, Vitest |
-| Tooling | [Bun](https://bun.sh/) (frontend), [air](https://github.com/air-verse/air) (Go hot reload), Make, Docker |
-| Serving | Angular built by Bun → embedded into the Go binary via `embed.FS` |
+| HTTP / gRPC | Echo v5 + gRPC (`google.golang.org/grpc`) |
+| DI | `samber/do/v2` |
+| Database | Postgres 18 + sqlc (pgx/v5) |
+| Migrations | golang-migrate (embedded, run via `cmd/migrate`) |
+| Cache / messaging | Valkey |
+| Observability | OpenTelemetry traces + Prometheus metrics, `/healthz` `/readyz` `/metrics` |
+| Config | viper (`config.yaml` + env), validated |
+| Logging | zerolog |
+| Frontend | Angular 22 (standalone, signals, zoneless), Angular Material, Vitest, Bun |
+| Serving | Angular built by Bun → embedded into the Go binary; Echo serves SPA + API |
 
-## Architecture
-
-In **development**, two processes run: Angular's dev server (`:4200`) proxies `/api` to Fiber (`:3000`).
-In **production**, `bun run build` emits the SPA into `backend/web/dist/`, Go embeds it with `embed.FS`, and the single binary serves both the SPA and the API.
+## Layout
 
 ```
-Browser ──▶ Fiber (:3000)
-              ├── /api/v1/*  → handler → service → repository (sqlc) → Postgres
-              └── /*         → embedded Angular SPA (index.html fallback for client routes)
+.
+├── backend/                     # Go module (github.com/zercle/go-angular-spa-template)
+│   ├── cmd/{server,migrate}/
+│   ├── api/{proto,pb}/tasks/v1/ # gRPC contract + generated code
+│   ├── internal/
+│   │   ├── app/                 # DI composition root
+│   │   ├── config/              # viper config
+│   │   ├── features/tasks/      # domain/dto/service/repository/handler/di
+│   │   ├── infrastructure/      # db (pgx, sqlc, migrations), messaging/valkey
+│   │   ├── shared/              # errors, middleware, server, telemetry
+│   │   └── web/                 # embeds the built Angular SPA + Echo route
+│   ├── config.yaml  sqlc.yaml  Taskfile.yml  .golangci.yml
+├── frontend/                    # Angular 22 app (Bun, Material)
+├── compose.yml                  # postgres, valkey, migrate, server, otel, prometheus, grafana
+├── Containerfile[.migrate]      # multi-stage builds (root context: bun → go → distroless)
+├── Taskfile.yml                 # root orchestrator (includes backend/Taskfile.yml)
+└── deployments/kustomize/       # k8s manifests
 ```
 
 ## Prerequisites
 
-- Go 1.26+, Bun 1.3+, Docker (for Postgres)
-- Dev tools: `make tools` (installs air, sqlc, goose, golangci-lint)
+- Go 1.26+, Bun 1.3+, Docker/Podman
+- [Task](https://taskfile.dev), and (for codegen) `protoc`, `golang-migrate`; backend Go tools via `task backend:tools`
 
 ## Quick start
 
 ```bash
-cp .env.example .env          # defaults work with the bundled docker-compose
-make tools                    # one-time: install Go dev tools
-make db-up                    # start Postgres
-make dev                      # Fiber (:3000) + Angular (:4200)
-# open http://localhost:4200
+cp backend/.env.example backend/.env     # defaults match compose
+task setup                               # frontend deps (bun install)
+task dev                                 # Postgres+Valkey, Echo :8080, Angular :4200
+# open http://localhost:4200  (the dev server proxies /api → :8080)
 ```
 
-To run the production single binary:
+Single self-contained binary:
 
 ```bash
-make run                      # builds the SPA, embeds it, runs the binary
-# open http://localhost:3000
+task build      # bun builds Angular → embedded → backend/bin/server
+task run        # open http://localhost:8080 (SPA + API from one process)
 ```
 
-## Project layout
-
-```
-backend/
-  cmd/server/            # composition root (main.go)
-  internal/
-    config/              # env config
-    domain/              # entities + repository interface (no framework imports)
-    usecase/             # business logic (depends only on domain)
-    delivery/rest/       # Fiber v3 handlers + SPA serving
-    repository/postgres/ # sqlc queries, goose migrations, pgx adapter
-  web/                   # embed.FS for the built SPA
-frontend/                # Angular 22 app (Bun)
-  src/app/core/          # Task model + signal-based TaskStore
-  src/app/features/tasks # task-list + task-form (Material)
-sqlc.yaml, Makefile, docker-compose.yml, Dockerfile, .github/workflows/ci.yml
-```
+Ports: HTTP **:8080**, gRPC **:50051**. Health/observability: `/healthz`, `/readyz`, `/metrics`.
 
 ## API
 
-Base path `/api/v1`. Success responses are wrapped as `{ "data": ... }`; errors as `{ "error": "..." }`.
+REST under `/api/v1` (the browser uses REST; gRPC is for backend consumers). Success responses are the resource DTO; the list endpoint returns `{ "tasks": [...] }`; errors are `{ "error": "CODE", "message": "..." }`.
 
 | Method | Path | Description |
 | --- | --- | --- |
-| GET | `/api/v1/health` | Health check |
 | GET | `/api/v1/tasks` | List tasks |
 | POST | `/api/v1/tasks` | Create `{ "title": "..." }` |
 | GET | `/api/v1/tasks/:id` | Get one |
 | PUT | `/api/v1/tasks/:id` | Update `{ "title": "...", "done": bool }` |
 | DELETE | `/api/v1/tasks/:id` | Delete |
 
-## Common commands
+gRPC: `tasks.v1.TaskService` (Create/Get/List/Update/Delete) on `:50051`.
+
+## Common tasks
 
 ```bash
-make dev          # run backend + frontend for development
-make build        # build the single self-contained binary
-make test         # backend (go test) + frontend (Vitest)
-make lint         # golangci-lint + eslint
-make sqlc         # regenerate sqlc code after editing queries/migrations
-make migrate      # apply migrations manually (also auto-run on startup)
-make docker       # build the production image
+task dev                 # backend + frontend dev servers
+task build               # single binary with SPA embedded
+task test                # backend unit tests + frontend (Vitest)
+task lint                # golangci-lint + eslint
+task migrate             # apply DB migrations
+task backend:generate    # sqlc + protobuf + mocks
+task docker              # build the production image
 ```
 
 ## Deployment
 
 ```bash
-docker build -t gofiber-angular-spa .
-docker run -p 3000:3000 -e DATABASE_URL=postgres://... gofiber-angular-spa
+docker build -f Containerfile -t go-angular-spa-template .
+docker run -p 8080:8080 -p 50051:50051 --env-file backend/.env go-angular-spa-template
 ```
 
-The multi-stage `Dockerfile` builds the SPA with Bun, compiles a static Go binary with the SPA embedded, and ships a minimal distroless image.
+The image builds the Angular SPA with Bun, compiles a static Go binary with the SPA embedded, and ships a minimal distroless image. `compose.yml` additionally runs Postgres, Valkey, migrations, and an observability stack (OTel Collector, Prometheus, Grafana). Kubernetes manifests live under `deployments/kustomize/`.
 
-## Adding a new resource
+## Replacing the example feature
 
-1. Add a goose migration in `backend/internal/repository/postgres/migrations/`.
-2. Add queries in `.../queries/` and run `make sqlc`.
-3. Define the entity + repository interface in `domain/`, the logic in `usecase/`, the adapter in `repository/postgres/`, and handlers in `delivery/rest/`.
-4. On the frontend, generate artifacts with the CLI (`bunx ng generate ...`) and wire a signal store + components.
+The `tasks` feature is a deletable stub. To add your own: add a migration + sqlc queries (`task backend:generate`), define the domain/dto/service/repository/handler under `internal/features/<name>/`, and wire it in `internal/app/app.go`.
 
 ## Next steps (intentionally out of scope)
 
-- **Authentication / authorization** (JWT or sessions) — the tasks API is currently open.
-- Pagination, request rate limiting, structured error codes, OpenAPI docs.
+- **Authentication / authorization** — the tasks API is currently open.
+- grpc-web/gateway if the browser needs to call gRPC directly.

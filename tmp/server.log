@@ -1,0 +1,25 @@
+2026/06/17 15:01:50 goose: no migrations to run. current version: 1
+{"time":"2026-06-17T15:01:50.326056+07:00","level":"INFO","msg":"migrations applied"}
+{"time":"2026-06-17T15:01:50.335462+07:00","level":"INFO","msg":"server listening","port":"3000","env":"development"}
+
+    _______ __
+   / ____(_) /_  ___  _____
+  / /_  / / __ \/ _ \/ ___/
+ / __/ / / /_/ /  __/ /
+/_/   /_/_.___/\___/_/          v3.3.0
+--------------------------------------------------
+INFO Server started on: 	http://127.0.0.1:3000 (bound on host 0.0.0.0 and port 3000)
+INFO Application name: 		gofiber-angular-spa
+INFO Total handlers: 		14
+INFO Prefork: 			Disabled
+INFO PID: 			39917
+INFO Total process count: 	1
+
+15:01:52 | 200 |     115.482µs |       127.0.0.1 | GET     | /api/v1/health    
+15:01:58 | 200 |       8.316µs |       127.0.0.1 | GET     | /                 
+15:01:58 | 200 |    6.413855ms |       127.0.0.1 | GET     | /chunk-NQT7GHKD.js 
+15:01:58 | 200 |     214.847µs |       127.0.0.1 | GET     | /main-OL42JLWV.js 
+15:01:58 | 200 |       85.98µs |       127.0.0.1 | GET     | /styles-OPUTW5UJ.css 
+15:01:58 | 200 |       279.5µs |       127.0.0.1 | GET     | /chunk-IS6INSJK.js 
+15:01:58 | 200 |    4.791413ms |       127.0.0.1 | GET     | /api/v1/tasks     
+15:02:18 | 201 |   29.557828ms |       127.0.0.1 | POST    | /api/v1/tasks     

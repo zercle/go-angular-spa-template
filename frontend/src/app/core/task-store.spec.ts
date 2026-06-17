@@ -6,7 +6,7 @@ import { TaskStore } from './task-store';
 import { Task } from './task';
 
 function task(partial: Partial<Task>): Task {
-  return { id: 1, title: 't', done: false, createdAt: '', updatedAt: '', ...partial };
+  return { id: 'a', title: 't', done: false, created_at: '', updated_at: '', ...partial };
 }
 
 describe('TaskStore', () => {
@@ -27,7 +27,7 @@ describe('TaskStore', () => {
     const promise = store.load();
     const req = httpMock.expectOne('/api/v1/tasks');
     expect(req.request.method).toBe('GET');
-    req.flush({ data: [task({ id: 1, done: false }), task({ id: 2, done: true })] });
+    req.flush({ tasks: [task({ id: '1', done: false }), task({ id: '2', done: true })] });
     await promise;
 
     expect(store.tasks().length).toBe(2);
@@ -38,18 +38,18 @@ describe('TaskStore', () => {
     const promise = store.add({ title: 'new' });
     const req = httpMock.expectOne('/api/v1/tasks');
     expect(req.request.method).toBe('POST');
-    req.flush({ data: task({ id: 99, title: 'new' }) });
+    req.flush(task({ id: '99', title: 'new' }));
     await promise;
 
-    expect(store.tasks()[0].id).toBe(99);
+    expect(store.tasks()[0].id).toBe('99');
   });
 
   it('removes a task from state', async () => {
     const loaded = store.load();
-    httpMock.expectOne('/api/v1/tasks').flush({ data: [task({ id: 5 })] });
+    httpMock.expectOne('/api/v1/tasks').flush({ tasks: [task({ id: '5' })] });
     await loaded;
 
-    const promise = store.remove(5);
+    const promise = store.remove('5');
     httpMock.expectOne('/api/v1/tasks/5').flush(null);
     await promise;
 

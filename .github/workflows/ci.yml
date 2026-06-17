@@ -5,12 +5,72 @@ on:
     branches: [main]
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
-  backend:
+  backend-lint:
+    name: Backend Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26.x"
+          cache-dependency-path: backend/go.sum
+      - name: Verify modules
+        run: |
+          go mod verify
+          go mod tidy
+          git diff --exit-code go.mod go.sum
+      - uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.12.2
+          working-directory: backend
+          args: --timeout=5m
+      - name: Check formatting
+        run: test -z "$(gofmt -s -l .)" || (gofmt -s -l . && exit 1)
+
+  backend-unit:
+    name: Backend Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26.x"
+          cache-dependency-path: backend/go.sum
+      - run: go mod download
+      - run: go generate ./...
+      - run: go test -race -tags=unit -coverprofile=coverage.out -coverpkg=./internal/...,./pkg/... -covermode=atomic ./internal/... ./pkg/...
+      - name: Coverage gate (60%)
+        run: |
+          total=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+          echo "Coverage: $total%"
+          awk -v t="$total" 'BEGIN { exit !(t < 60.0) }' && { echo "Coverage below 60%"; exit 1; } || true
+
+  backend-integration:
+    name: Backend Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
     services:
       postgres:
-        image: postgres:17-alpine
+        image: postgres:18-alpine
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -18,49 +78,71 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd "pg_isready -U postgres -d app"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      valkey:
+        image: valkey/valkey:9-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "valkey-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: app
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_SSL_MODE: disable
+      VALKEY_HOST: localhost
+      VALKEY_PORT: 6379
+      VALKEY_DB: "0"
+      APP_ENVIRONMENT: test
     steps:
       - uses: actions/checkout@v5
-
       - uses: actions/setup-go@v6
         with:
-          go-version: "1.26"
-
+          go-version: "1.26.x"
+          cache-dependency-path: backend/go.sum
+      - run: go mod download
       - name: Verify sqlc generate is in sync
         run: |
-          go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
-          sqlc generate
-          git diff --exit-code backend/internal/repository/postgres/gen
+          go tool sqlc generate
+          git diff --exit-code internal/infrastructure/db/sqlc
+      - run: go run ./cmd/migrate up
+      - run: go test -race -tags=integration ./...
 
-      - name: Build
-        run: go build ./backend/...
-
-      - name: Test
-        env:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/app?sslmode=disable
-        run: go test ./backend/...
-
-      - name: Lint
-        uses: golangci/golangci-lint-action@v8
+  backend-build:
+    name: Backend Build + Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [backend-lint, backend-unit]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
         with:
-          version: v2.12.2
-          args: ./backend/...
+          go-version: "1.26.x"
+          cache-dependency-path: backend/go.sum
+      - name: Build binaries
+        working-directory: backend
+        run: |
+          go build -ldflags="-s -w" -o bin/server ./cmd/server
+          go build -ldflags="-s -w" -o bin/migrate ./cmd/migrate
+      - name: Build server image (SPA embedded)
+        run: docker build -f Containerfile -t go-angular-spa-template:ci .
 
   frontend:
+    name: Frontend
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v5
-
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.8
-
       - run: bun install --frozen-lockfile
       - run: bunx ng lint
       - run: bunx ng test --watch=false

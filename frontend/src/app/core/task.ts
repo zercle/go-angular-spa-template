@@ -1,10 +1,10 @@
-/** A task as returned by the API (mirrors the backend taskResponse DTO). */
+/** A task as returned by the API (mirrors the backend TaskResponse DTO). */
 export interface Task {
-  id: number;
+  id: string;
   title: string;
   done: boolean;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 /** Payload to create a task. */
@@ -18,7 +18,7 @@ export interface UpdateTask {
   done: boolean;
 }
 
-/** The API wraps successful responses as { "data": ... }. */
-export interface Envelope<T> {
-  data: T;
+/** The list endpoint wraps results as { "tasks": [...] }. */
+export interface ListTasksResponse {
+  tasks: Task[];
 }

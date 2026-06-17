@@ -19,6 +19,6 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('mat-toolbar')?.textContent).toContain('GoFiber + Angular SPA');
+    expect(compiled.querySelector('mat-toolbar')?.textContent).toContain('Go + Angular SPA');
   });
 });
