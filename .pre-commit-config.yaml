@@ -1,0 +1,52 @@
+# Pre-commit hooks. Install with:
+#   pip install pre-commit && pre-commit install
+#
+# Go and frontend linters run as local hooks so they use the repo's own
+# toolchain (Go, golangci-lint, bun) rather than pinned mirror versions.
+minimum_pre_commit_version: "3.5.0"
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '\.md$'
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-added-large-files
+      - id: check-yaml
+        args: ["--allow-multiple-documents"]
+      - id: check-json
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+
+  - repo: local
+    hooks:
+      - id: gofmt
+        name: gofmt (backend)
+        entry: bash -c 'cd backend && gofmt -s -w "$@"' --
+        language: system
+        files: '^backend/.*\.go$'
+
+      - id: goimports
+        name: goimports (backend)
+        entry: bash -c 'cd backend && go tool goimports -w "$@" 2>/dev/null || true' --
+        language: system
+        files: '^backend/.*\.go$'
+
+      # golangci-lint can be slow; run it on push rather than every commit.
+      - id: golangci-lint
+        name: golangci-lint (backend)
+        entry: bash -c 'cd backend && golangci-lint run ./...'
+        language: system
+        types: [go]
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: frontend-lint
+        name: eslint (frontend)
+        entry: bash -c 'cd frontend && bunx ng lint'
+        language: system
+        files: '^frontend/.*\.(ts|html)$'
+        pass_filenames: false
+        stages: [pre-push]

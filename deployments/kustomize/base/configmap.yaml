@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: server-config
+data:
+  # Non-secret runtime configuration. Secrets (DB_PASSWORD, VALKEY_PASSWORD)
+  # are provided separately via a Secret — see secret.example.yaml and the
+  # README deployment section. Never commit real secret values.
+  APP_ENVIRONMENT: "production"
+  APP_NAME: "go-angular-spa-template"
+  HTTP_HOST: "0.0.0.0"
+  HTTP_PORT: "8080"
+  DB_HOST: "postgres"
+  DB_PORT: "5432"
+  DB_NAME: "app"
+  DB_USER: "postgres"
+  DB_SSL_MODE: "require"
+  VALKEY_HOST: "valkey"
+  VALKEY_PORT: "6379"
+  VALKEY_DB: "0"
+  LOG_LEVEL: "info"
+  OTEL_SERVICE_NAME: "go-angular-spa-template"

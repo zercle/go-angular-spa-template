@@ -1,12 +1,24 @@
 version: 2
 updates:
+  # Go module lives in /backend, not the repo root.
   - package-ecosystem: "gomod"
-    directory: "/"
+    directory: "/backend"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
     labels:
       - "dependencies"
+      - "go"
+
+  # Angular app. Dependabot reads Bun's bun.lock via the npm ecosystem.
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "frontend"
 
   - package-ecosystem: "github-actions"
     directory: "/"

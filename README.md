@@ -102,7 +102,39 @@ docker build -f Containerfile -t go-angular-spa-template .
 docker run -p 8080:8080 --env-file backend/.env go-angular-spa-template
 ```
 
-The image builds the Angular SPA with Bun, compiles a static Go binary with the SPA embedded, and ships a minimal distroless image. `compose.yml` additionally runs Postgres, Valkey, migrations, and an observability stack (OTel Collector, Prometheus, Grafana). Kubernetes manifests live under `deployments/kustomize/`.
+The image builds the Angular SPA with Bun, compiles a static Go binary with the SPA embedded, and ships a minimal distroless image. `compose.yml` additionally runs Postgres, Valkey, migrations, and an observability stack (OTel Collector, Prometheus, Grafana).
+
+### Kubernetes (Kustomize)
+
+Manifests live under `deployments/kustomize/`:
+
+```
+deployments/kustomize/
+├── base/                 # Deployment, Service, Ingress, HPA, ConfigMap, Namespace
+└── overlays/
+    ├── dev/              # 1 replica, dev image tag, debug logging
+    └── prod/             # 3 replicas, ingress host, prod settings
+```
+
+The base ships a hardened single-binary Deployment: liveness (`/healthz`) and readiness (`/readyz`) probes on the HTTP port, CPU/memory requests and limits, a `runAsNonRoot` / `readOnlyRootFilesystem` securityContext with all capabilities dropped (matching the distroless `nonroot` UID `65532`), a CPU-based `HorizontalPodAutoscaler`, and a path-based `Ingress` routing `/` to the service (the SPA and API are one process).
+
+Render and apply an overlay:
+
+```bash
+kubectl kustomize deployments/kustomize/overlays/prod    # render to stdout
+kubectl apply -k deployments/kustomize/overlays/prod     # apply
+```
+
+Set the real image tag in your release pipeline (the overlays use `images[].newTag`) and the public host/TLS in the prod overlay's Ingress patch.
+
+#### Secrets
+
+The Deployment reads non-secret config from the `server-config` ConfigMap and **secrets from a `server-secrets` Secret** (`DB_PASSWORD`, `VALKEY_PASSWORD`). That Secret is intentionally **not** part of `kustomization.yaml` and must never be committed. Supply it out-of-band via:
+
+- an **external secret manager** — External Secrets Operator, Sealed Secrets, Vault Agent, or a cloud CSI secret driver (recommended), or
+- an **overlay patch** that injects values from your secret store.
+
+`base/secret.example.yaml` documents the expected keys (example values only — do not apply it as-is).
 
 ## Replacing the example feature
 

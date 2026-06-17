@@ -1,0 +1,17 @@
+# Code owners — requested for review automatically on matching paths.
+# Replace @zercle/maintainers with your actual team or usernames.
+
+# Default owner for everything not matched below.
+*                 @zercle/maintainers
+
+# Backend (Go)
+/backend/         @zercle/maintainers
+
+# Frontend (Angular)
+/frontend/        @zercle/maintainers
+
+# Deployment manifests
+/deployments/     @zercle/maintainers
+
+# CI / repo automation
+/.github/         @zercle/maintainers

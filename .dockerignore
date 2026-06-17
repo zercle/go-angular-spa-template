@@ -1,0 +1,51 @@
+# Keep the Docker build context lean. The build needs frontend/ (src,
+# package.json, bun.lock) and backend/ (go.*, source) — those are NOT ignored.
+
+# VCS / CI / tooling
+.git
+.gitignore
+.gitattributes
+.github
+.task
+.pre-commit-config.yaml
+.editorconfig
+
+# Dependencies (reinstalled inside the build from lockfiles)
+**/node_modules
+vendor
+
+# Build / test output
+**/dist
+frontend/.angular
+frontend/coverage
+backend/bin
+backend/coverage*
+**/*.out
+**/*.test
+**/*.prof
+
+# Embedded SPA build output — the image rebuilds it from frontend/ source.
+backend/internal/web/dist/browser/*
+!backend/internal/web/dist/browser/.gitkeep
+
+# Local env / secrets (never bake into an image)
+**/.env
+**/.env.*
+!**/.env.example
+
+# Editors / OS cruft
+.vscode
+.idea
+*.swp
+*.swo
+*~
+**/.DS_Store
+Thumbs.db
+
+# Docs (not needed at build time). Keep README out of the context.
+*.md
+
+# Deployment manifests / compose are not part of the image build
+compose.yml
+deployments
+Containerfile.migrate

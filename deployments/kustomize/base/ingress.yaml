@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: server
+  labels:
+    app.kubernetes.io/name: go-angular-spa-template
+    app.kubernetes.io/component: server
+  annotations:
+    # The SPA and API are served by the same process; route everything to it.
+    # Set the host and TLS in an overlay to match your environment.
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: server
+                port:
+                  name: http

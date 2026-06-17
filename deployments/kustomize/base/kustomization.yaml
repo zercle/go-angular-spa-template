@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Base manifests for the single-binary server (SPA embedded). Overlays patch
+# image tags, replicas, host/TLS, and secrets per environment.
+#
+# Note: secret.example.yaml is intentionally NOT listed here. Provide the
+# "server-secrets" Secret out-of-band (overlay patch or external secret
+# manager) — see README and base/secret.example.yaml.
+
+namespace: go-angular-spa-template
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: go-angular-spa-template
+    includeSelectors: false
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+  - hpa.yaml
