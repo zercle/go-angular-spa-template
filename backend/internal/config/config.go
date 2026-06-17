@@ -212,7 +212,7 @@ const defaultHost = "0.0.0.0"
 // config file and environment.
 func setDefaults(v *viper.Viper) {
 	defaults := map[string]any{
-		"app.name":             "zercle-go-template",
+		"app.name":             "go-angular-spa-template",
 		"app.environment":      "development",
 		"app.host":             defaultHost,
 		"app.port":             8080,
@@ -242,7 +242,7 @@ func setDefaults(v *viper.Viper) {
 		"valkey.connect_timeout": 5 * time.Second,
 
 		"otel.exporter":     "none",
-		"otel.service_name": "zercle-go-template",
+		"otel.service_name": "go-angular-spa-template",
 		"otel.sampling":     1.0,
 
 		"log.level":  "info",

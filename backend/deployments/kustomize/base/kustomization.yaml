@@ -6,4 +6,4 @@ resources:
   - configmap.yaml
   - secret.yaml
 commonLabels:
-  app.kubernetes.io/name: zercle-go-template
+  app.kubernetes.io/name: go-angular-spa-template

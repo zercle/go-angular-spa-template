@@ -94,7 +94,7 @@ tasks:
   docker-build:
     desc: Build server container image
     cmds:
-      - docker build -f Containerfile -t zercle-go-template:latest .
+      - docker build -f Containerfile -t go-angular-spa-template:latest .
 
   cover-html:
     desc: Render coverage report to HTML

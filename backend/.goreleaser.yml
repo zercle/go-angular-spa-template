@@ -1,6 +1,6 @@
 version: 2
 
-project_name: zercle-go-template
+project_name: go-angular-spa-template
 
 before:
   hooks:

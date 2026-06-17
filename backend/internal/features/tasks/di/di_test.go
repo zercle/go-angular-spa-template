@@ -35,7 +35,7 @@ func TestRegister_WithStubs(t *testing.T) {
 
 	cfg := &config.Config{
 		App: config.AppConfig{
-			Name:            "zercle-go-template",
+			Name:            "go-angular-spa-template",
 			Environment:     "test",
 			Host:            "0.0.0.0",
 			Port:            8080,

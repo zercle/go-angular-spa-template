@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: zercle-go-template
+  name: go-angular-spa-template
 spec:
   selector:
-    app.kubernetes.io/name: zercle-go-template
+    app.kubernetes.io/name: go-angular-spa-template
   ports:
     - name: http
       port: 8080
