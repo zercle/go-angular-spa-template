@@ -6,6 +6,10 @@ import (
 	"fmt"
 
 	"github.com/samber/do/v2"
+	valkeygo "github.com/valkey-io/valkey-go"
+	"go.opentelemetry.io/otel/metric"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 
 	pb "github.com/zercle/go-angular-spa-template/api/pb/tasks/v1"
 	"github.com/zercle/go-angular-spa-template/internal/features/tasks/domain"
@@ -28,7 +32,36 @@ func Register(c do.Injector) error {
 
 	do.Provide(c, func(i do.Injector) (domain.Repository, error) {
 		queries := do.MustInvoke[*sqlcdb.Queries](i)
-		return repository.NewRepository(queries), nil
+		base := repository.NewRepository(queries)
+
+		// Decorate with a Valkey read-through cache + OTel spans + Prometheus
+		// counters so the full stack is exercised on the request path.
+		client := do.MustInvoke[valkeygo.Client](i)
+		tracer := do.MustInvoke[*sdktrace.TracerProvider](i).Tracer("tasks/repository")
+		meter := do.MustInvoke[*sdkmetric.MeterProvider](i).Meter("tasks/repository")
+
+		hits, err := meter.Int64Counter("tasks.cache.hits",
+			metric.WithDescription("Task cache hits by operation"))
+		if err != nil {
+			return nil, fmt.Errorf("create cache hits counter: %w", err)
+		}
+		misses, err := meter.Int64Counter("tasks.cache.misses",
+			metric.WithDescription("Task cache misses by operation"))
+		if err != nil {
+			return nil, fmt.Errorf("create cache misses counter: %w", err)
+		}
+		created, err := meter.Int64Counter("tasks.created",
+			metric.WithDescription("Total tasks created"))
+		if err != nil {
+			return nil, fmt.Errorf("create tasks created counter: %w", err)
+		}
+
+		return repository.NewCachedRepository(
+			base,
+			repository.NewValkeyCache(client),
+			tracer,
+			repository.Metrics{Hits: hits, Misses: misses, Created: created},
+		), nil
 	})
 
 	do.Provide(c, func(i do.Injector) (domain.Service, error) {

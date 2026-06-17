@@ -78,6 +78,14 @@ REST under `/api/v1` (the browser uses REST; gRPC is for backend consumers). Suc
 
 gRPC: `tasks.v1.TaskService` (Create/Get/List/Update/Delete) on `:50051`.
 
+## Caching & observability
+
+The tasks repository is wrapped by a **read-through Valkey cache** decorator (`repository.CachedRepository`) that also emits OpenTelemetry spans and Prometheus metrics — so every layer of the stack is exercised on the request path:
+
+- **Valkey**: `Get`/`List` are served from cache on a hit and populated on a miss; writes evict the task key and bump a list-generation counter to invalidate cached pages.
+- **OpenTelemetry**: spans `tasks.repository.{Create,GetByID,List,Update,Delete}` with a `cache.hit` attribute (exported when `OTEL_EXPORTER=otlp`).
+- **Prometheus** (`/metrics`): `tasks_cache_hits_total`, `tasks_cache_misses_total` (labelled `op=get|list`), and `tasks_created_total`.
+
 ## Common tasks
 
 ```bash
