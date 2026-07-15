@@ -175,7 +175,7 @@ jobs:
           go-version: "1.26.x"
           cache-dependency-path: backend/go.sum
       - name: govulncheck (backend)
-        uses: golang/govulncheck-action@v1.0.4
+        uses: golang/govulncheck-action@v1.1.0
         with:
           go-version-input: "1.26.x"
           work-dir: backend
