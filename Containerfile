@@ -17,7 +17,7 @@ RUN bun run build
 # -----------------------------------------------------------------------------
 # Stage 2: build the Go binary with the SPA embedded
 # -----------------------------------------------------------------------------
-FROM golang:1.26 AS builder
+FROM golang:1.27 AS builder
 WORKDIR /build
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download
